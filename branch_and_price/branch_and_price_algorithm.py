@@ -16,7 +16,7 @@ class BranchAndPrice:
         pricing_problems = self.initialize()
         if self.master_problem is None:
             self.all_columns = self.find_initial_solution(pricing_problems)
-            self.update_master_problem()
+            self.update_and_execute_master_problem()
         else:
             self.master_problem.execute()
             self.all_columns.extend(self.master_problem.get_solution())
@@ -32,6 +32,7 @@ class BranchAndPrice:
     def find_initial_solution(self, princing_problems):
         initial_vars = self.get_artificial_variables()
         self.master_problem = SetPartitioning(initial_vars, self.all_trips_arcs_codes)
+        self.master_problem.execute()
         self.column_generation(princing_problems)
         result = self.master_problem.get_solution()
         return result
@@ -68,8 +69,7 @@ class BranchAndPrice:
             new_columns = self.update_and_solve_pricing_problems(sigma, pi, princing_problems)
             if len(new_columns) > 0:
                 self.all_columns.extend(new_columns)
-                self.update_master_problem()
-                self.master_problem.execute()
+                self.update_and_execute_master_problem()
             else:
                 stop = True
 
@@ -91,7 +91,7 @@ class BranchAndPrice:
     def build_new_column(self, commodity_name, original_cost, scheduled_trips_codes, path_all_arcs):
         return Variable(original_cost, commodity_name, scheduled_trips_codes, path_all_arcs)
 
-    def update_master_problem(self):
+    def update_and_execute_master_problem(self):
         var_by_commodity = {}
         for var in self.all_columns:
             if var_by_commodity.get(var.commodity) is None:
@@ -99,6 +99,7 @@ class BranchAndPrice:
             else:
                 var_by_commodity[var.commodity].append(var)
         self.master_problem = SetPartitioning(var_by_commodity, self.all_trips_arcs_codes)
+        self.master_problem.execute()
 
 
 if __name__ == '__main__':
@@ -196,6 +197,7 @@ if __name__ == '__main__':
 
     branch_and_price = BranchAndPrice([graph_1, graph_2],
                                       [arc_trip1.get_code(), arc_trip2.get_code(),
-                                       arc_trip3.get_code(), arc_trip4.get_code()],
-                                      first_basic_solution)
+                                       arc_trip3.get_code(), arc_trip4.get_code()])
+                                      # ,
+                                      # first_basic_solution)
     branch_and_price.execute()
